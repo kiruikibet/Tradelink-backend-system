@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from .models import User_Profile
 
 class RegisterSerializer(serializers.ModelSerializer):
     password=serializers.CharField(write_only=True,min_length=8)
@@ -25,6 +26,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
         )
         return user
+    
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=User_Profile
+        fields="__all__"
+               
 
 class LoginSerializer(serializers.Serializer):
 
@@ -54,13 +61,11 @@ class LoginSerializer(serializers.Serializer):
                 username = user_obj.username
 
             except User.DoesNotExist:
-
                 raise serializers.ValidationError(
                     "Invalid credentials"
                 )
 
         else:
-
             username = username_or_email
 
         # AUTHENTICATE USER
@@ -81,15 +86,11 @@ class LoginSerializer(serializers.Serializer):
         return {
 
             "refresh": str(refresh),
-
             "access": str(refresh.access_token),
-
             "user": {
-
                 "id": user.id,
-
                 "username": user.username,
-
                 "email": user.email,
+                "profile": ProfileSerializer(user.user_profile).data
             }
         }
