@@ -9,7 +9,7 @@ class User_Profile(models.Model):
         related_name='user_profile',
         primary_key=True
     )
-    profile_image=models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    profile_image=models.URLField(max_length=500, blank=True, null=True)
     phone_number=models.CharField(max_length=15,unique=True,blank=True, null=True)
     country=models.CharField(max_length=100,blank=True)
     city=models.CharField(max_length=100,blank=True,null=True)

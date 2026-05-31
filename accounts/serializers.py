@@ -86,6 +86,8 @@ class LoginSerializer(serializers.Serializer):
                 "Invalid credentials"
             )
 
+        user_profile, _ = User_Profile.objects.get_or_create(user=user)
+
         # GENERATE JWT TOKENS
         refresh = RefreshToken.for_user(user)
 
@@ -99,6 +101,7 @@ class LoginSerializer(serializers.Serializer):
                 "last_name": user.last_name,
                 "username": user.username,
                 "email": user.email,
-                "profile": ProfileSerializer(user.user_profile).data
+                "profile_picture": user_profile.profile_image,
+                "profile": ProfileSerializer(user_profile).data
             }
         }

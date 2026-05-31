@@ -22,6 +22,7 @@ class ProductSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
     images = ProductImageSerializer(many=True, read_only=True)
     user = serializers.ReadOnlyField(source="user.username")
+    user_profile_image = serializers.ReadOnlyField(source="user.user_profile.profile_image")
 
     class Meta:
         model = Product
