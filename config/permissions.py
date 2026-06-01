@@ -1,34 +1,31 @@
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
-class IsOwner(permissions.BasePermission):
-    """Allow access only to the owner referenced by `user`."""
-
-    def has_object_permission(self, request, view, obj):
-        return getattr(obj, "user", None) == request.user
-
-
-class IsConversationParticipant(permissions.BasePermission):
-    """Allow access only to a conversation buyer or seller."""
+class IsOwner(BasePermission):
+    """Allow access only to the object's owner."""
 
     def has_object_permission(self, request, view, obj):
-        return request.user in {
-            getattr(obj, "buyer", None),
-            getattr(obj, "seller", None),
-        }
+        return obj.user == request.user
 
 
-class IsNotificationRecipient(permissions.BasePermission):
-    """Allow access only to the user receiving a notification."""
+class IsConversationParticipant(BasePermission):
+    """Allow access only to participants of a conversation."""
 
     def has_object_permission(self, request, view, obj):
-        return getattr(obj, "recipient", None) == request.user
+        return request.user in (obj.sender, obj.receiver)
 
 
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """Allow unsafe writes only to staff users."""
+class IsNotificationRecipient(BasePermission):
+    """Allow access only to the notification's recipient."""
+
+    def has_object_permission(self, request, view, obj):
+        return obj.recipient == request.user
+
+
+class IsAdminOrReadOnly(BasePermission):
+    """Allow read-only access to everyone; write access to admins only."""
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
+        if request.method in SAFE_METHODS:
             return True
-        return bool(request.user and request.user.is_staff)
+        return request.user and request.user.is_staff

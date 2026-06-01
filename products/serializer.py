@@ -16,9 +16,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
-    # readable name for GET responses
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", read_only=True)
     category_name = serializers.ReadOnlyField(source="category.name")
-    # writable FK for POST/PUT
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
     images = ProductImageSerializer(many=True, read_only=True)
     user = serializers.ReadOnlyField(source="user.username")

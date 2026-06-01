@@ -7,12 +7,14 @@ For more information on this file, see
 https://docs.djangoproject.com/en/6.0/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/6.0/ref/settings/
+https://docs.djangoproject.com/en/6.0/ref/settings/4i kj
 """
-
+import environ
 import os
+
 from pathlib import Path
 
+env = environ.Env()
 
 def env_bool(name, default=False):
     value = os.environ.get(name)

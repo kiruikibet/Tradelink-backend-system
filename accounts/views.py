@@ -1,34 +1,36 @@
+from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import LoginSerializer
+from .serializers import LoginSerializer, RegisterSerializer
 from .models import User_Profile
-
-from .serializers import RegisterSerializer
-
 
 
 @api_view(["POST"])
 def login(request):
-    serializer=LoginSerializer(data=request.data)
-
+    serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+def register(request):
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
         return Response(
-            serializer.validated_data,
-            status=status.HTTP_200_OK,
+            {"message": "user registered successfully", "user": serializer.data},
+            status=status.HTTP_201_CREATED,
         )
-    
-    return Response(
-        serializer.errors,
-        status=status.HTTP_400_BAD_REQUEST,
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def profile(request):
     user_profile, _ = User_Profile.objects.get_or_create(user=request.user)
-
     return Response({
         "user": {
             "id": request.user.id,
@@ -36,44 +38,67 @@ def profile(request):
             "last_name": request.user.last_name,
             "username": request.user.username,
             "email": request.user.email,
+            "bio": user_profile.bio,
             "profile_picture": user_profile.profile_image,
         }
     })
+
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def update_avatar(request):
     image_url = request.data.get("profile_picture")
-
     if not image_url:
         return Response(
             {"profile_picture": "Profile picture URL is required."},
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_400_BAD_REQUEST,
         )
-
     user_profile, _ = User_Profile.objects.get_or_create(user=request.user)
     user_profile.profile_image = image_url
     user_profile.save(update_fields=["profile_image"])
+    return Response({"profile_picture": user_profile.profile_image})
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    user = request.user
+    data = request.data
+
+    new_username = data.get("username", "").strip()
+    if new_username and new_username != user.username:
+        if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+            return Response(
+                {"username": "Username already taken."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.username = new_username
+
+    user.first_name = data.get("first_name", user.first_name).strip()
+    user.last_name = data.get("last_name", user.last_name).strip()
+    user.save(update_fields=["username", "first_name", "last_name"])
+
+    user_profile, _ = User_Profile.objects.get_or_create(user=user)
+    user_profile.bio = data.get("bio", user_profile.bio or "")
+    user_profile.save(update_fields=["bio"])
 
     return Response({
-        "profile_picture": user_profile.profile_image,
-        "message": "Profile picture updated successfully",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "bio": user_profile.bio,
+            "profile_picture": user_profile.profile_image,
+        }
     })
-@api_view(["POST"])
-def register(request):
-    serializer=RegisterSerializer(data=request.data)
 
-    if serializer.is_valid():
-        serializer.save()
 
-        return Response(
-            {
-                "message":"user registered successfully",
-                "user":serializer.data
-            },
-            status=status.HTTP_201_CREATED,
-        )
-    print(serializer.errors)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
- 
+@api_view(["GET"])
+def check_username(request):
+    username = request.query_params.get("username", "").strip()
+    if not username:
+        return Response({"available": False})
+    taken = User.objects.filter(username=username).exists()
+    return Response({"available": not taken})
