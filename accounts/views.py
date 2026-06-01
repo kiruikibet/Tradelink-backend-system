@@ -47,15 +47,31 @@ def profile(request):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def update_avatar(request):
-    image_url = request.data.get("profile_picture")
-    if not image_url:
+    import cloudinary.uploader
+
+    new_url = request.data.get("profile_picture")
+    new_public_id = request.data.get("public_id")  # sent from frontend
+
+    if not new_url:
         return Response(
             {"profile_picture": "Profile picture URL is required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
     user_profile, _ = User_Profile.objects.get_or_create(user=request.user)
-    user_profile.profile_image = image_url
-    user_profile.save(update_fields=["profile_image"])
+
+    # Delete old image from Cloudinary if it exists
+    if user_profile.cloudinary_public_id:
+        try:
+            cloudinary.uploader.destroy(user_profile.cloudinary_public_id)
+        except Exception:
+            pass  # don't block the update if delete fails
+
+    user_profile.profile_image = new_url
+    if new_public_id:
+        user_profile.cloudinary_public_id = new_public_id
+    user_profile.save(update_fields=["profile_image", "cloudinary_public_id"])
+
     return Response({"profile_picture": user_profile.profile_image})
 
 

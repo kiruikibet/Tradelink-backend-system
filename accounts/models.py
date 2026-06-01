@@ -10,6 +10,7 @@ class User_Profile(models.Model):
         primary_key=True
     )
     profile_image=models.URLField(max_length=500, blank=True, null=True)
+    cloudinary_public_id=models.CharField(max_length=255, blank=True, null=True)
     phone_number=models.CharField(max_length=15,unique=True,blank=True, null=True)
     country=models.CharField(max_length=100,blank=True)
     city=models.CharField(max_length=100,blank=True,null=True)
