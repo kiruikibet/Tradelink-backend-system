@@ -1,6 +1,7 @@
+from unicodedata import name
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import register, profile, login, update_avatar, update_profile, check_username
+from .views import register, profile, login, update_avatar, update_profile, check_username,forgot_password
 
 urlpatterns = [
     path("register/", register, name="register"),
@@ -10,4 +11,5 @@ urlpatterns = [
     path("profile/update-avatar/", update_avatar, name="update_avatar"),
     path("profile/update/", update_profile, name="update_profile"),
     path("check-username/", check_username, name="check_username"),
+    path("forgot-password/",forgot_password, name="forgot_password")
 ]
