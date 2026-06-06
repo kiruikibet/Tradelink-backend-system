@@ -8,6 +8,8 @@ from .models import User_Profile
 from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
 from django.utils.encoding import force_bytes,force_str
 
@@ -126,6 +128,11 @@ def check_username(request):
 @api_view(["POST"])
 def forgot_password(request):
     email=request.data.get("email")
+    if not email:
+        return Response(
+            {"email":"Email is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     try:
         user=User.objects.get(email=email)
@@ -145,23 +152,37 @@ def forgot_password(request):
             message=f"Click the link to reset your password: \n\n{reset_link}",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=False,
+            fail_silently=True,
         )
 
-        return Response({
-            "message":"Password reset link sent to your email",
-        })
     except User.DoesNotExist:    
-        return Response(
-        {"message":"No account found"},
-        status=status.HTTP_400_BAD_REQUEST
-        )
+        pass
+
+    return Response({
+            "message":"If an account exists with that email, a password reset email has been sent."
+        })
     
 @api_view(["POST"])
 def reset_password(request):
     uid= request.data.get("uid")
     token=request.data.get("token")
     new_password=request.data.get("password")
+
+    if not uid:
+        return Response(
+            {"uid":"Reset link is missing a user id."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not token:
+        return Response(
+            {"token":"Reset link is missing a token."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not new_password:
+        return Response(
+            {"password":"New password is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         #decode user ID
@@ -175,15 +196,23 @@ def reset_password(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        try:
+            validate_password(new_password, user)
+        except ValidationError as exc:
+            return Response(
+                {"password": exc.messages},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user.set_password(new_password)
         user.save()
 
         return Response({
             "message": "Password reset successfully."
         })
-    except Exception as e :
+    except (User.DoesNotExist, ValueError, TypeError):
         return Response({
-            "message":"Something went wrong"
+            "message":"Invalid or expired reset link."
         },
         status=status.HTTP_400_BAD_REQUEST
         )

@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User_Profile
 
@@ -20,6 +22,13 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_username(self,value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exist")
+        return value
+
+    def validate_password(self,value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages)
         return value
 
     def create(self,validated_data):

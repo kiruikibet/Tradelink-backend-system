@@ -23,6 +23,23 @@ class AccountApiTests(APITestCase):
         user = User.objects.get(username="seller")
         self.assertTrue(User_Profile.objects.filter(user=user).exists())
 
+    def test_register_rejects_weak_password(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "username": "weakpass",
+                "first_name": "Weak",
+                "last_name": "Password",
+                "email": "weakpass@example.com",
+                "password": "password123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+        self.assertFalse(User.objects.filter(username="weakpass").exists())
+
     def test_login_returns_tokens_and_user(self):
         User.objects.create_user(
             username="buyer",
