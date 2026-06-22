@@ -46,6 +46,8 @@ def profile(request):
             "email": request.user.email,
             "bio": user_profile.bio,
             "profile_picture": user_profile.profile_image,
+            "account_type": user_profile.account_type,
+            "verification_status": user_profile.verification_status,
         }
     })
 
@@ -113,6 +115,8 @@ def update_profile(request):
             "email": user.email,
             "bio": user_profile.bio,
             "profile_picture": user_profile.profile_image,
+            "account_type": user_profile.account_type,
+            "verification_status": user_profile.verification_status,
         }
     })
 
@@ -124,6 +128,16 @@ def check_username(request):
         return Response({"available": False})
     taken = User.objects.filter(username=username).exists()
     return Response({"available": not taken})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_list(request):
+    """Admin-only endpoint to list all users."""
+    if not request.user.is_staff:
+        return Response({"message": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    users = User.objects.all().values("id", "username", "email", "date_joined", "is_active")
+    return Response(list(users))
 
 @api_view(["POST"])
 def forgot_password(request):
@@ -152,7 +166,7 @@ def forgot_password(request):
             message=f"Click the link to reset your password: \n\n{reset_link}",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=True,
+            fail_silently=False,
         )
 
     except User.DoesNotExist:    

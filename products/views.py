@@ -20,21 +20,45 @@ def products(request):
             )
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
+            profile = getattr(request.user, "user_profile", None)
+            if profile and profile.account_type == "seller" and profile.verification_status != "verified":
+                return Response(
+                    {"message": "Seller verification is required before posting products."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(["DELETE"])
+@api_view(["GET", "DELETE", "PATCH"])
 def product_detail(request, product_id):
     if not request.user.is_authenticated:
         return Response({"message": "Please login first"}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
-        product = Product.objects.get(product_id=product_id, user=request.user)
+        product = Product.objects.get(product_id=product_id)
     except Product.DoesNotExist:
         return Response({"message": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
-    product.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if request.method == "GET":
+        serializer = ProductSerializer(product)
+        return Response(serializer.data)
+
+    # Only the owner can edit or delete
+    if product.user != request.user:
+        return Response({"message": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == "DELETE":
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if request.method == "PATCH":
+        serializer = ProductSerializer(product, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET","POST"])
 def categories(request):

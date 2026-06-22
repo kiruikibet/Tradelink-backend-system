@@ -8,16 +8,16 @@ from .models import User_Profile
 
 class RegisterSerializer(serializers.ModelSerializer):
     password=serializers.CharField(write_only=True,min_length=8)
+    account_type=serializers.ChoiceField(choices=["buyer", "seller"], default="buyer", write_only=True)
 
     class Meta:
         model=User
-        fields=["id","last_name","first_name","username", "email","password","date_joined"]
+        fields=["id","last_name","first_name","username", "email","password","account_type","date_joined"]
 
     
     def validate_email(self,value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exist")
-        
+            raise serializers.ValidationError("Email already exist")        
         return value
     def validate_username(self,value):
         if User.objects.filter(username=value).exists():
@@ -32,6 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self,validated_data):
+        account_type = validated_data.pop("account_type", "buyer")
         user=User.objects.create_user(
             username=validated_data["username"],
             email=validated_data["email"],
@@ -39,7 +40,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             first_name=validated_data["first_name"],
             last_name=validated_data["last_name"],
         )
-        User_Profile.objects.create(user=user)
+        User_Profile.objects.create(user=user, account_type=account_type)
         return user
     
 class ProfileSerializer(serializers.ModelSerializer):
@@ -111,6 +112,8 @@ class LoginSerializer(serializers.Serializer):
                 "username": user.username,
                 "email": user.email,
                 "profile_picture": user_profile.profile_image,
+                "account_type": user_profile.account_type,
+                "verification_status": user_profile.verification_status,
                 "profile": ProfileSerializer(user_profile).data
             }
         }

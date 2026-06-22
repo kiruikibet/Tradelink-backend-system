@@ -18,6 +18,23 @@ class User_Profile(models.Model):
     latitude=models.DecimalField(max_digits=9,decimal_places=6,blank=True,null=True)
     ip_address=models.GenericIPAddressField(blank=True,null=True)
     bio=models.TextField(blank=True,null=True)
+    account_type=models.CharField(
+        max_length=20,
+        choices=[("buyer", "Buyer"), ("seller", "Seller")],
+        default="buyer",
+    )
+    verification_status=models.CharField(
+        max_length=20,
+        choices=[
+            ("not_submitted", "Not Submitted"),
+            ("pending", "Pending Review"),
+            ("verified", "Verified"),
+            ("rejected", "Rejected"),
+        ],
+        default="not_submitted",
+    )
+    government_id_url=models.URLField(max_length=500, blank=True)
+    selfie_url=models.URLField(max_length=500, blank=True)
 
 
 
